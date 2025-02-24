@@ -5,6 +5,14 @@ import 'package:provider/provider.dart';
 import 'package:window_size/window_size.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+    setWindowTitle('My App');
+    setWindowMaxSize(const Size(1920, 1080));
+    setWindowMinSize(const Size(1280, 720));
+  }
+
   setupWindow();
   runApp(
     // Provide the model to all widgets within the app. We're using
@@ -23,8 +31,8 @@ void main() {
   );
 }
 
-const double windowWidth = 360;
-const double windowHeight = 640;
+const double windowWidth = 720;
+const double windowHeight = 1060;
 void setupWindow() {
   if (!kIsWeb && (Platform.isWindows || Platform.isLinux || Platform.isMacOS)) {
     WidgetsFlutterBinding.ensureInitialized();
@@ -49,9 +57,52 @@ void setupWindow() {
 /// _not_ depend on Provider.
 class Counter with ChangeNotifier {
   int value = 0;
-  void increment() {
-    value += 1;
+
+  void setAge(int newAge) {
+    value = newAge;
     notifyListeners();
+  }
+
+  String get milestone {
+    if (value <= 12) {
+      return "You are a child";
+    } else if (value <= 19) {
+      return "Teenager Time";
+    } else if (value <= 30) {
+      return "You are a young adult";
+    } else if (value <= 50) {
+      return "You are an adult";
+    } else {
+      return "Golden Years!";
+    }
+  }
+
+  Color get backgroundColor {
+    if (value <= 12) {
+      return Colors.lightBlue;
+    } else if (value <= 19) {
+      return Colors.lightGreen;
+    } else if (value <= 30) {
+      return Colors.yellow;
+    } else if (value <= 50) {
+      return Colors.orange;
+    } else {
+      return Colors.grey;
+    }
+  }
+
+  Color get progressionBarColor {
+    if (value <= 33) {
+      return Colors.green;
+    } else if (value <= 67) {
+      return Colors.yellow;
+    } else {
+      return Colors.red;
+    }
+  }
+
+  double get progressValue {
+    return value / 99;
   }
 }
 
@@ -71,49 +122,50 @@ class MyHomePage extends StatelessWidget {
   const MyHomePage({super.key});
   @override
   Widget build(BuildContext context) {
+    var counter = context.watch<Counter>();
     return Scaffold(
-      appBar: AppBar(title: const Text('Flutter Demo Home Page')),
+      appBar: AppBar(title: const Text('Age counter')),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text('You have pushed the button this many times:'),
-            // Consumer looks for an ancestor Provider widget
-            // and retrieves its model (Counter, in this case).
-            // Then it uses that model to build widgets, and will trigger
-            // rebuilds if the model is updated.
-            Consumer<Counter>(
-              builder:
-                  (context, counter, child) => Text(
-                    '${counter.value}',
-                    style: Theme.of(context).textTheme.headlineMedium,
+        child: Container(
+          color: counter.backgroundColor,
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(counter.milestone),
+                // Consumer looks for an ancestor Provider widget
+                // and retrieves its model (Counter, in this case).
+                // Then it uses that model to build widgets, and will trigger
+                // rebuilds if the model is updated.
+                Consumer<Counter>(
+                  builder:
+                      (context, counter, child) => Text(
+                        '${counter.value}',
+                        style: Theme.of(context).textTheme.headlineMedium,
+                      ),
+                ),
+                Slider(
+                  value: counter.value.toDouble(),
+                  min: 0,
+                  max: 99,
+                  divisions: 99,
+                  label: '${counter.value}',
+                  onChanged: (newValue) {
+                    counter.setAge(newValue.toInt());
+                  },
+                ),
+                LinearProgressIndicator(
+                  value: counter.progressValue,
+                  backgroundColor: Colors.white,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    counter.progressionBarColor,
                   ),
+                  minHeight: 10,
+                ),
+              ],
             ),
-          ],
+          ),
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          // You can access your providers anywhere you have access
-          // to the context. One way is to use Provider.of<Counter>(context).
-          // The provider package also defines extension methods on the context
-          // itself. You can call context.watch<Counter>() in a build method
-          // of any widget to access the current state of Counter, and to ask
-          // Flutter to rebuild your widget anytime Counter changes.
-          //
-          // You can't use context.watch() outside build methods, because that
-          // often leads to subtle bugs. Instead, you should use
-          // context.read<Counter>(), which gets the current state
-          // but doesn't ask Flutter for future rebuilds.
-          //
-          // Since we're in a callback that will be called whenever the user
-          // taps the FloatingActionButton, we are not in the build method here.
-          // We should use context.read().
-          var counter = context.read<Counter>();
-          counter.increment();
-        },
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
       ),
     );
   }
